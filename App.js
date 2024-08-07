@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, FlatList, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function App() {
   const [tasks, setTasks] = useState([]);
   const [text, setText] = useState('');
+  const [lastPress, setLastPress] = useState(null); // Son tıklama zamanını takip etmek için
 
   // Görev ekleme işlevi
   const addTask = () => {
@@ -25,8 +26,36 @@ export default function App() {
     ));
   };
 
+  // Görevin iki kez tıklanarak silinmesi işlevi
+  const handleDoublePress = (taskId) => {
+    const now = Date.now();
+    if (lastPress && (now - lastPress) < 300) { // 300 ms içinde iki tıklama kontrolü
+      setTasks(tasks.filter(task => task.id !== taskId)); // Görevi sil
+      setLastPress(null); // Son tıklama zamanını sıfırla
+    } else {
+      setLastPress(now); // Son tıklama zamanını güncelle
+    }
+  };
+
   // Tamamlanmamış görevlerin sayısını hesaplama
   const incompleteTasksCount = tasks.filter(task => !task.isCompleted).length;
+
+  // Görevleri sıfırlama işlevi
+  const resetTasks = () => {
+    setTasks([]);
+  };
+
+  // Zamanlayıcıyı ayarlama
+  useEffect(() => {
+    const now = new Date();
+    const millisecondsTillMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0) - now;
+
+    const timer = setTimeout(() => {
+      resetTasks(); // Görevleri sıfırla
+    }, millisecondsTillMidnight);
+
+    return () => clearTimeout(timer); // Temizlik işlevi
+  }, []); // Boş bağımlılık dizisi ile sadece bir kez çalışır
 
   return (
     <SafeAreaView style={styles.container}>
@@ -41,7 +70,8 @@ export default function App() {
         renderItem={({ item }) => 
           <Pressable 
             onLongPress={() => handleLongPress(item.id)} 
-            delayLongPress={2000}
+            onPress={() => handleDoublePress(item.id)} // İki kez tıklama işlevi
+            delayLongPress={500}
             style={[styles.task, item.isCompleted && styles.completedTask]}>
             <Text style={[styles.taskText, item.isCompleted && styles.completedText]}>
               {item.text}
@@ -105,14 +135,14 @@ const styles = StyleSheet.create({
     padding: 10
   },
   completedTask: {
-    backgroundColor: '#ff5a5f', // Uzun basıldığında arka plan rengini değiştir
+    backgroundColor: '#347474', // Uzun basıldığında arka plan rengini değiştir
   },
   taskText: {
-    fontSize: 20,
+    fontSize: 24,
     color: 'white',
+    padding: 10
   },
   completedText: {
     textDecorationLine: 'line-through', // Uzun basıldığında yazının üstünü çiz
   }
-  
 });
